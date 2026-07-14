@@ -10,6 +10,9 @@ on:
       - '**/build.yml'
       - '**/.gitignore'
       - '**/.gitattributes'
+  pull_request:
+    branches:
+      - 'master'
   workflow_dispatch:
 jobs:
   build:
@@ -54,3 +57,46 @@ jobs:
         with:
           name: AnimeStudio-net10
           path: output-net10
+
+  build-macos:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: |
+            9.0.x
+            10.0.x
+
+      - name: Build Oodle arm64
+        run: |
+          cmake -S AnimeStudio.Oodle -B AnimeStudio.Oodle/build-arm64 -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=arm64 -DOOZ_BUILD_BUN=OFF -DOOZ_BUILD_EXE=OFF -DOOZ_BUILD_VALIDATE=OFF
+          cmake --build AnimeStudio.Oodle/build-arm64 --config Release --target libooz
+
+      - name: Build Oodle x64
+        run: |
+          cmake -S AnimeStudio.Oodle -B AnimeStudio.Oodle/build-x64 -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=x86_64 -DOOZ_BUILD_BUN=OFF -DOOZ_BUILD_EXE=OFF -DOOZ_BUILD_VALIDATE=OFF
+          cmake --build AnimeStudio.Oodle/build-x64 --config Release --target libooz
+
+      - name: Publish CLI arm64
+        run: |
+          dotnet publish AnimeStudio.CLI/AnimeStudio.CLI.csproj -c Release -f net9.0 -r osx-arm64 --self-contained false -o publish-arm64
+          cp AnimeStudio.Oodle/build-arm64/libooz.dylib publish-arm64/libooz.dylib
+
+      - name: Publish CLI x64
+        run: |
+          dotnet publish AnimeStudio.CLI/AnimeStudio.CLI.csproj -c Release -f net9.0 -r osx-x64 --self-contained false -o publish-x64
+          cp AnimeStudio.Oodle/build-x64/libooz.dylib publish-x64/libooz.dylib
+
+      - name: Upload macOS arm64 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AnimeStudio-CLI-macos-arm64
+          path: publish-arm64
+
+      - name: Upload macOS x64 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AnimeStudio-CLI-macos-x64
+          path: publish-x64
