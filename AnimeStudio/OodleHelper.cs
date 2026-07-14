@@ -1,12 +1,30 @@
 ﻿using System;
 using System.IO;
+using System.Reflection;
 using System.Runtime.InteropServices;
 
 namespace AnimeStudio;
 public static class OodleHelper
 {
+    static OodleHelper()
+    {
+        NativeLibrary.SetDllImportResolver(typeof(OodleHelper).Assembly, ResolveNativeLibrary);
+    }
+
     [DllImport(@"AnimeStudio.Ooz.dll", CallingConvention = CallingConvention.StdCall)]
     static extern int Ooz_Decompress(ref byte compressedBuffer, int compressedBufferSize, ref byte decompressedBuffer, int decompressedBufferSize, int fuzzSafe, int checkCRC, int verbosity, IntPtr rawBuffer, int rawBufferSize, IntPtr fpCallback, IntPtr callbackUserData, IntPtr decoderMemory, IntPtr decoderMemorySize, int threadPhase);
+
+    private static IntPtr ResolveNativeLibrary(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
+    {
+        if (OperatingSystem.IsWindows() || !string.Equals(libraryName, "AnimeStudio.Ooz.dll", StringComparison.Ordinal))
+        {
+            return IntPtr.Zero;
+        }
+
+        var libraryFileName = OperatingSystem.IsMacOS() ? "libooz.dylib" : "libooz.so";
+        var libraryPath = Path.Combine(AppContext.BaseDirectory, libraryFileName);
+        return File.Exists(libraryPath) ? NativeLibrary.Load(libraryPath) : IntPtr.Zero;
+    }
 
     public static int Decompress(Span<byte> compressed, Span<byte> decompressed)
     {
