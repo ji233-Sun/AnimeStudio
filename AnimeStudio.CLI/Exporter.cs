@@ -17,6 +17,11 @@ namespace AnimeStudio.CLI
             var m_Texture2D = (Texture2D)item.Asset;
             if (Properties.Settings.Default.convertTexture)
             {
+                if (!OperatingSystem.IsWindows())
+                {
+                    Logger.Warning($"Skipping texture conversion for {item.Text}: Texture2DDecoderNative is only available on Windows.");
+                    return false;
+                }
                 var type = Properties.Settings.Default.convertType;
                 if (!TryExportFile(exportPath, item, "." + type.ToString().ToLower(), out var exportFullPath))
                     return false;
@@ -50,6 +55,11 @@ namespace AnimeStudio.CLI
             var converter = new AudioClipConverter(m_AudioClip);
             if (Properties.Settings.Default.convertAudio && converter.IsSupport)
             {
+                if (!OperatingSystem.IsWindows())
+                {
+                    Logger.Warning($"Skipping audio conversion for {item.Text}: FMOD native library is only available on Windows.");
+                    return false;
+                }
                 if (!TryExportFile(exportPath, item, ".wav", out var exportFullPath))
                     return false;
                 var buffer = converter.ConvertToWav();
@@ -442,6 +452,11 @@ namespace AnimeStudio.CLI
 
         public static bool ExportAnimationClip(AssetItem item, string exportPath)
         {
+            if (!OperatingSystem.IsWindows())
+            {
+                Logger.Warning($"Skipping animation conversion for {item.Text}: ACL native libraries are only available on Windows.");
+                return false;
+            }
             if (!TryExportFile(exportPath, item, ".anim", out var exportFullPath))
                 return false;
             var m_AnimationClip = (AnimationClip)item.Asset;
@@ -454,6 +469,11 @@ namespace AnimeStudio.CLI
 
         public static bool ExportAnimator(AssetItem item, string exportPath, List<AssetItem> animationList = null)
         {
+            if (!OperatingSystem.IsWindows())
+            {
+                Logger.Warning($"Skipping animator export for {item.Text}: FBX and ACL native libraries are only available on Windows.");
+                return false;
+            }
             if (!TryExportFolder(exportPath, item, out var exportFullPath))
                 return false;
 
@@ -487,6 +507,11 @@ namespace AnimeStudio.CLI
 
         public static bool ExportGameObject(AssetItem item, string exportPath, List <AssetItem> animationList = null)
         {
+            if (!OperatingSystem.IsWindows())
+            {
+                Logger.Warning($"Skipping GameObject export for {item.Text}: FBX and ACL native libraries are only available on Windows.");
+                return false;
+            }
             if (!TryExportFolder(exportPath, item, out var exportFullPath))
                 return false;
 

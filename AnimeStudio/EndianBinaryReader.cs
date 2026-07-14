@@ -32,7 +32,7 @@ namespace AnimeStudio
         {
             if (Endian == EndianType.BigEndian)
             {
-                Read(buffer, 0, 2);
+                ReadExactly(buffer, 2);
                 return BinaryPrimitives.ReadInt16BigEndian(buffer);
             }
             return base.ReadInt16();
@@ -42,7 +42,7 @@ namespace AnimeStudio
         {
             if (Endian == EndianType.BigEndian)
             {
-                Read(buffer, 0, 4);
+                ReadExactly(buffer, 4);
                 return BinaryPrimitives.ReadInt32BigEndian(buffer);
             }
             return base.ReadInt32();
@@ -52,7 +52,7 @@ namespace AnimeStudio
         {
             if (Endian == EndianType.BigEndian)
             {
-                Read(buffer, 0, 8);
+                ReadExactly(buffer, 8);
                 return BinaryPrimitives.ReadInt64BigEndian(buffer);
             }
             return base.ReadInt64();
@@ -62,7 +62,7 @@ namespace AnimeStudio
         {
             if (Endian == EndianType.BigEndian)
             {
-                Read(buffer, 0, 2);
+                ReadExactly(buffer, 2);
                 return BinaryPrimitives.ReadUInt16BigEndian(buffer);
             }
             return base.ReadUInt16();
@@ -72,7 +72,7 @@ namespace AnimeStudio
         {
             if (Endian == EndianType.BigEndian)
             {
-                Read(buffer, 0, 4);
+                ReadExactly(buffer, 4);
                 return BinaryPrimitives.ReadUInt32BigEndian(buffer);
             }
             return base.ReadUInt32();
@@ -82,7 +82,7 @@ namespace AnimeStudio
         {
             if (Endian == EndianType.BigEndian)
             {
-                Read(buffer, 0, 8);
+                ReadExactly(buffer, 8);
                 return BinaryPrimitives.ReadUInt64BigEndian(buffer);
             }
             return base.ReadUInt64();
@@ -92,7 +92,7 @@ namespace AnimeStudio
         {
             if (Endian == EndianType.BigEndian)
             {
-                Read(buffer, 0, 4);
+                ReadExactly(buffer, 4);
                 Array.Reverse(buffer, 0, 4);
                 return BitConverter.ToSingle(buffer, 0);
             }
@@ -103,12 +103,26 @@ namespace AnimeStudio
         {
             if (Endian == EndianType.BigEndian)
             {
-                Read(buffer, 0, 8);
+                ReadExactly(buffer, 8);
                 Array.Reverse(buffer);
                 return BitConverter.ToDouble(buffer, 0);
             }
             return base.ReadDouble();
         }
+        private void ReadExactly(byte[] destination, int count)
+        {
+            var offset = 0;
+            while (offset < count)
+            {
+                var read = Read(destination, offset, count - offset);
+                if (read == 0)
+                {
+                    throw new EndOfStreamException();
+                }
+                offset += read;
+            }
+        }
+
         public override byte[] ReadBytes(int count)
         {
             if (count == 0)
@@ -232,6 +246,11 @@ namespace AnimeStudio
 
         internal T[] ReadArray<T>(Func<T> del, int length)
         {
+            if (length < 0 || length > Remaining)
+            {
+                throw new InvalidDataException($"Invalid array length {length} with {Remaining} bytes remaining.");
+            }
+
             if (length < 0x1000)
             {
                 var array = new T[length];
@@ -266,6 +285,10 @@ namespace AnimeStudio
             if (length == -1)
             {
                 length = ReadInt32();
+            }
+            if (length < 0 || length > Remaining)
+            {
+                throw new InvalidDataException($"Invalid byte array length {length} with {Remaining} bytes remaining.");
             }
             return ReadBytes(length);
         }
